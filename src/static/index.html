@@ -1,0 +1,1431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cone Control</title>
+    <style>
+        /* =========================================================
+           DEFAULT: OUTDOOR SUNLIGHT HIGH-CONTRAST MODE (GLARE RESISTANT)
+           ========================================================= */
+        :root {
+            --bg-color: #f8fafc;
+            --panel-bg: #ffffff;
+            --panel-border: #000000;
+            --header-bg: #000000;
+            --header-text: #facc15;
+            --text-main: #000000;
+            --text-dim: #334155;
+            --accent-blue: #0284c7;
+            --accent-green: #15803d;
+            --accent-yellow: #a16207;
+            --accent-red: #dc2626;
+            --badge-bg: #e2e8f0;
+            --table-header-bg: #000000;
+            --table-header-text: #ffffff;
+            --console-bg: #0f172a;
+            --console-text: #38bdf8;
+        }
+
+        /* OUTDOOR DARK MODE THEME */
+        body.theme-dark {
+            --bg-color: #090d16;
+            --panel-bg: #111827;
+            --panel-border: #374151;
+            --header-bg: #1e3a8a;
+            --header-text: #ffffff;
+            --text-main: #f9fafb;
+            --text-dim: #9ca3af;
+            --accent-blue: #38bdf8;
+            --accent-green: #4ade80;
+            --accent-yellow: #facc15;
+            --accent-red: #f87171;
+            --badge-bg: #1f2937;
+            --table-header-bg: #1f2937;
+            --table-header-text: #f9fafb;
+            --console-bg: #030712;
+            --console-text: #38bdf8;
+        }
+
+        /* PIT DARK MODE — graphite + orange (CLOKKR-inspired) */
+        body.theme-pit {
+            --bg-color: #1a1a1e;
+            --panel-bg: #242428;
+            --panel-border: #3a3a40;
+            --header-bg: #111114;
+            --header-text: #f97316;
+            --text-main: #e5e5ea;
+            --text-dim: #8e8e9a;
+            --accent-blue: #f97316;
+            --accent-green: #22c55e;
+            --accent-yellow: #f97316;
+            --accent-red: #ef4444;
+            --badge-bg: #2e2e35;
+            --table-header-bg: #111114;
+            --table-header-text: #f97316;
+            --console-bg: #0d0d10;
+            --console-text: #f97316;
+        }
+        body.theme-pit button.btn-green { background-color: #f97316; color: #000; border-color: #c2410c; }
+        body.theme-pit button.btn-green:hover { background-color: #ea580c; }
+        body.theme-pit .btn-export { background-color: #f97316; color: #000; border-color: #c2410c; }
+        body.theme-pit .theme-toggle-btn { background-color: #f97316; color: #000; border-color: #c2410c; }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Fira Code', 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            line-height: 1.35;
+            max-width: 1920px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Compact Header Banner for 1080p */
+        header {
+            background-color: var(--header-bg);
+            color: var(--header-text);
+            padding: 6px 14px;
+            border-radius: 4px;
+            border: 2px solid var(--panel-border);
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .theme-toggle-btn {
+            background-color: #facc15;
+            color: #000000;
+            font-weight: 900;
+            padding: 5px 12px;
+            border-radius: 4px;
+            border: 2px solid #000000;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .theme-toggle-btn:hover { background-color: #eab308; }
+
+        .btn-settings {
+            background-color: var(--badge-bg);
+            color: var(--text-main);
+            font-weight: 900;
+            padding: 5px 12px;
+            border-radius: 4px;
+            border: 2px solid var(--panel-border);
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .btn-settings:hover { opacity: 0.85; }
+
+        .btn-export {
+            background-color: #16a34a;
+            color: #ffffff;
+            padding: 5px 12px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 900;
+            font-size: 0.8rem;
+            border: 2px solid #000000;
+        }
+        .btn-export:hover { background-color: #15803d; }
+
+        /* 1080p Screen Layout Grids */
+        /* Top row: unified queue panel is full-width */
+        .grid-top {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .grid-bottom {
+            display: grid;
+            grid-template-columns: 1.25fr 0.75fr;
+            gap: 8px;
+        }
+
+        @media (max-width: 1280px) {
+            .grid-top, .grid-bottom {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* High Contrast Fixed Height Panels */
+        .card {
+            background-color: var(--panel-bg);
+            border: 2px solid var(--panel-border);
+            border-radius: 4px;
+            padding: 8px 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card-top-fixed {
+            height: 310px;
+        }
+
+        .card h2 {
+            margin-top: 0;
+            font-size: 0.95rem;
+            font-weight: 900;
+            color: var(--text-main);
+            border-bottom: 2px solid var(--panel-border);
+            padding-bottom: 4px;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-transform: uppercase;
+        }
+
+        .table-viewport {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 240px;
+        }
+
+        /* Unified queue panel row styles */
+        .queue-active-row {
+            border-left: 4px solid var(--accent-green);
+            background-color: rgba(22, 163, 74, 0.06);
+        }
+        .queue-staged-row {
+            opacity: 0.78;
+        }
+        .queue-staged-row:hover { opacity: 1; }
+        .queue-divider td {
+            background-color: var(--table-header-bg);
+            color: var(--table-header-text);
+            font-weight: 900;
+            font-size: 0.78rem;
+            letter-spacing: 1px;
+            padding: 3px 8px;
+            text-transform: uppercase;
+        }
+        .status-badge-active {
+            display: inline-block;
+            background-color: var(--accent-green);
+            color: #000;
+            font-weight: 900;
+            font-size: 0.7rem;
+            padding: 1px 5px;
+            border-radius: 3px;
+            letter-spacing: 0.5px;
+        }
+        .status-badge-staged {
+            display: inline-block;
+            background-color: var(--badge-bg);
+            color: var(--text-dim);
+            font-weight: 900;
+            font-size: 0.7rem;
+            padding: 1px 5px;
+            border-radius: 3px;
+            border: 1px solid var(--panel-border);
+            letter-spacing: 0.5px;
+        }
+
+        /* High Density Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 4px 6px;
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        th {
+            background-color: var(--table-header-bg);
+            color: var(--table-header-text);
+            font-weight: 900;
+            text-transform: uppercase;
+            font-size: 0.78rem;
+            letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .car-num {
+            font-weight: 900;
+            color: var(--accent-green);
+            font-size: 1rem;
+        }
+
+        .driver-name {
+            font-weight: 900;
+            color: var(--text-main);
+        }
+
+        .run-badge {
+            font-weight: 900;
+            color: var(--accent-blue);
+            background-color: var(--badge-bg);
+            padding: 1px 5px;
+            border-radius: 3px;
+            border: 1px solid var(--panel-border);
+            font-size: 0.8rem;
+        }
+
+        .time-display {
+            font-family: inherit;
+            font-size: 1.1rem;
+            font-weight: 900;
+            color: var(--accent-yellow);
+        }
+
+        .best-run-row {
+            background-color: rgba(22, 163, 74, 0.15);
+            font-weight: 900;
+        }
+
+        /* Inputs & Buttons */
+        .controls-row {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        input[type="text"], input[type="number"] {
+            font-family: inherit;
+            background-color: var(--panel-bg);
+            border: 2px solid var(--panel-border);
+            color: var(--text-main);
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            width: 100%;
+        }
+
+        button {
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 900;
+            padding: 4px 8px;
+            border-radius: 3px;
+            border: 2px solid #000000;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background-color 0.1s;
+        }
+
+        button.btn-green { background-color: #16a34a; color: white; }
+        button.btn-green:hover { background-color: #15803d; }
+
+        button.btn-amber { background-color: #d97706; color: white; }
+        button.btn-amber:hover { background-color: #b45309; }
+
+        button.btn-red { background-color: #dc2626; color: white; }
+        button.btn-red:hover { background-color: #b91c1c; }
+
+        button.btn-secondary { background-color: #475569; color: white; }
+        button.btn-secondary:hover { background-color: #334155; }
+
+        /* Drag-to-reorder handle */
+        .drag-handle {
+            cursor: grab;
+            color: var(--text-dim);
+            font-size: 1rem;
+            padding: 0 4px;
+            user-select: none;
+        }
+        .drag-handle:active { cursor: grabbing; }
+        tr.drag-over { outline: 2px solid var(--accent-yellow); }
+
+        /* Leaderboard sort badge */
+        .sort-btn {
+            font-size: 0.72rem;
+            padding: 2px 7px;
+            background-color: var(--badge-bg);
+            color: var(--text-main);
+            border: 1px solid var(--panel-border);
+            border-radius: 3px;
+            cursor: pointer;
+            font-weight: 900;
+        }
+        .sort-btn.active { background-color: var(--accent-yellow); color: #000; border-color: var(--accent-yellow); }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-box {
+            background-color: var(--panel-bg);
+            border: 4px solid var(--panel-border);
+            border-radius: 6px;
+            padding: 20px;
+            max-width: 480px;
+            width: 90%;
+            color: var(--text-main);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-box h3 {
+            margin-top: 0;
+            font-size: 1.2rem;
+            font-weight: 900;
+        }
+    </style>
+</head>
+<body>    <!-- SETTINGS MODAL -->
+    <div id="advanced-settings-modal" class="modal-overlay">
+        <div class="modal-box" style="max-width: 500px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--panel-border); padding-bottom: 8px; margin-bottom: 14px;">
+                <h3 style="margin:0;">⚙️ SETTINGS</h3>
+                <button onclick="closeSettingsModal()" class="btn-secondary">✕</button>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-weight: 900; font-size: 0.9rem;">Event Name:</label>
+                    <input type="text" id="event-name-input" placeholder="e.g. Summer Autocross Series" value="Autocross Event" onchange="saveSettings()">
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <label style="font-weight: 900; font-size: 0.9rem;">Event Date:</label>
+                    <input type="date" id="event-date-input" style="width: 170px; font-size:0.9rem;" onchange="saveSettings()">
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <label style="font-weight: 900; font-size: 0.9rem;">Cone Penalty (seconds):</label>
+                    <input type="number" step="0.5" id="cone-penalty-input" min="0" value="2" style="width: 80px; text-align:center; font-size:1rem;" onchange="saveSettings()">
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <label style="font-weight: 900; font-size: 0.9rem;">Number of Heats:</label>
+                    <input type="number" id="num-heats-input" min="1" max="10" value="1" style="width: 80px; text-align:center; font-size:1rem;" onchange="saveSettings()">
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <label style="font-weight: 900; font-size: 0.9rem;">Number of Runs per Heat:</label>
+                    <input type="number" id="runs-per-heat-input" min="1" max="10" value="3" style="width: 80px; text-align:center; font-size:1rem;" onchange="saveSettings()">
+                </div>
+
+                <div style="font-size:0.8rem; color:var(--accent-blue); font-weight:900; text-align:right;">
+                    Calculated Total Max Runs per Car: <strong id="calculated-max-runs">3</strong>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:8px; background-color:var(--badge-bg); padding:10px; border-radius:4px; border:1px solid var(--panel-border);">
+                    <input type="checkbox" id="auto-launch-chk" style="width:18px; height:18px;" onchange="saveSettings()">
+                    <label for="auto-launch-chk" style="font-weight:900; font-size:0.9rem; color:var(--accent-green); cursor:pointer;">Auto-Launch Staged Cars</label>
+                </div>
+
+                <div style="border-top: 2px solid var(--panel-border); padding-top: 10px; margin-top: 4px;">
+                    <label style="font-weight:900; font-size:0.9rem; display:block; margin-bottom:6px;">⏱️ Hardware Timer Simulator (Off-Track Test):</label>
+                    <div style="display: flex; gap: 6px;">
+                        <input type="number" step="0.001" id="sim-time-input" placeholder="Finish (s)" value="42.123">
+                        <button onclick="triggerSimulatedFinish()" class="btn-amber">SIM FINISH</button>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.78rem; font-weight: 900; color: var(--text-dim);">[JAC Chrono 9600 8-N-1]</span>
+                <button onclick="closeSettingsModal()" class="btn-green">DONE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL WARNING POPUP -->
+    <div id="max-runs-modal" class="modal-overlay">
+        <div class="modal-box" style="border: 4px solid #dc2626; text-align: center;">
+            <h3 style="color:#dc2626;">🚨 MAXIMUM RUNS EXCEEDED WARNING</h3>
+            <p id="modal-msg" style="font-size: 1rem; margin: 14px 0; font-weight: bold;">
+                Car 42 has already completed 4 of 4 allowed runs!
+            </p>
+
+            <div style="display: flex; justify-content: center; gap: 10px;">
+                <button onclick="closeModal()" class="btn-green">✅ OVERRIDE (Allow Run)</button>
+                <button onclick="deleteModalCar()" class="btn-red">❌ DELETE CAR</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 0-RUN DRIVERS MODAL -->
+    <div id="zero-runs-modal" class="modal-overlay">
+        <div class="modal-box" style="max-width: 680px; width: 95%;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--panel-border); padding-bottom: 8px; margin-bottom: 12px;">
+                <h3 style="margin:0; color:var(--accent-yellow);">⚠️ DRIVERS WITH 0 COMPLETED RUNS</h3>
+                <button onclick="closeZeroRunsModal()" class="btn-secondary">✕</button>
+            </div>
+
+            <div style="margin-bottom: 10px; display: flex; gap: 8px;">
+                <input type="text" id="zero-runs-filter" placeholder="Search by Car #, Name, or Class..." oninput="renderZeroRunsTable()">
+            </div>
+
+            <div style="max-height: 380px; overflow-y: auto; border: 1px solid var(--panel-border); border-radius: 4px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Car #</th>
+                            <th>Driver Name</th>
+                            <th>Class</th>
+                            <th>Car / Color</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="zero-runs-body">
+                        <tr><td colspan="5" style="color:var(--text-dim)">No drivers with 0 runs</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="margin-top: 14px; display:flex; justify-content:space-between; align-items:center;">
+                <span id="zero-runs-modal-summary" style="font-size:0.85rem; font-weight:bold; color:var(--accent-blue);">0 drivers remaining</span>
+                <button onclick="closeZeroRunsModal()" class="btn-green">DONE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header Banner -->
+    <header>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <h1 id="header-title">🏁 CONE CONTROL</h1>
+            <span id="heat-lock-badge" style="display:none; font-size:0.78rem; font-weight:900; background-color:#dc2626; color:#fff; padding:3px 8px; border-radius:4px;">🔒 HEAT FINALIZED</span>
+        </div>
+        <div class="header-controls">
+            <button onclick="openZeroRunsModal()" class="btn-amber" id="zero-runs-btn" style="font-weight:900;">⚠️ 0-RUN DRIVERS (<span id="zero-runs-count">0</span>)</button>
+            <button onclick="toggleFinalizeHeat()" id="finalize-heat-btn" class="btn-amber" style="font-weight:900;">🔒 Finalize Heat</button>
+            <button onclick="openSettingsModal()" class="btn-settings">⚙️ SETTINGS</button>
+            <button onclick="cycleTheme()" class="theme-toggle-btn" id="theme-btn">☀️ SUNLIGHT</button>
+            <a href="/api/export_csv" class="btn-export" download>📥 EXPORT CSV</a>
+        </div>
+    </header>
+
+    <!-- SINGLE FEATURE-RICH ON TRACK QUEUE PANEL -->
+    <div class="grid-top">
+        <div class="card" style="padding-bottom: 6px;">
+            <h2>
+                <span>🏎️ ON TRACK QUEUE</span>
+                <span id="active-count" style="font-size:0.85rem; color:var(--accent-green); font-weight:900;">0 Cars On Track</span>
+            </h2>
+
+            <div class="table-viewport">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:22px;">⠿</th>
+                            <th>Order / Status</th>
+                            <th>Car #</th>
+                            <th>Class</th>
+                            <th>Driver / Car</th>
+                            <th>Run</th>
+                            <th>Cones</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="queue-body">
+                        <tr><td colspan="8" style="color:var(--text-dim)">No cars on track — enter a car number below</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="controls-row" style="margin-top:8px;">
+                <input type="text" id="stage-car-num" placeholder="Car #" style="max-width:120px;" oninput="autoLookupDriver(this.value)" onkeydown="if(event.key==='Enter') stageCar()">
+                <input type="text" id="stage-driver" placeholder="Driver (auto-filled)" onkeydown="if(event.key==='Enter') stageCar()">
+                <button onclick="stageCar()" class="btn-green">+ ADD TO TRACK</button>
+            </div>
+            <div id="stage-error" style="font-size:0.78rem; font-weight:900; color:var(--accent-red); min-height:16px; margin-top:3px;"></div>
+        </div>
+    </div>
+
+    <!-- 1080p OPTIMIZED BOTTOM GRID: Completed Runs Log & Single Car Lookup -->
+    <div class="grid-bottom">
+        <!-- 3. Completed Runs Leaderboard Card -->
+        <div class="card">
+            <h2>
+                <span>🏆 COMPLETED RUNS LOG</span>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <button class="sort-btn" id="sort-chrono-btn" onclick="setSortMode('chrono')">⏱ CHRONO</button>
+                    <button class="sort-btn active" id="sort-leader-btn" onclick="setSortMode('leaderboard')">🏆 LEADERBOARD</button>
+                    <span id="total-runs" style="font-size:0.8rem; color:var(--text-dim);">0 runs</span>
+                </div>
+            </h2>
+            <div style="max-height: 280px; overflow-y: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Run #</th>
+                            <th>Time Stamp</th>
+                            <th>Car #</th>
+                            <th>Class</th>
+                            <th>Driver Name</th>
+                            <th>Run</th>
+                            <th>Raw</th>
+                            <th>Cones</th>
+                            <th>Final Time</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="runs-body">
+                        <tr><td colspan="11" style="color:var(--text-dim)">No completed runs recorded yet</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 4. Single Car Timing Lookup Panel -->
+        <div class="card">
+            <h2>
+                <span>🔍 SINGLE CAR TIMING LOOKUP</span>
+                <span id="lookup-best-tag" style="font-size:0.85rem; color:var(--accent-green); font-weight:900;"></span>
+            </h2>
+            
+            <div style="display: flex; gap: 6px; margin-bottom: 6px;">
+                <input type="text" id="lookup-car-num" placeholder="Enter Car # to lookup all runs..." oninput="updateCarLookup()" onkeydown="updateCarLookup()">
+                <button onclick="updateCarLookup()" class="btn-green">SEARCH</button>
+            </div>
+
+            <div id="lookup-driver-info" style="font-size: 0.85rem; font-weight: 900; margin-bottom: 4px; color: var(--accent-blue); min-height: 22px;">
+                Enter a Car # above to view run history
+            </div>
+
+            <div id="lookup-class-info" style="display:none; font-size: 0.82rem; font-weight: 700; margin-bottom: 6px; padding: 4px 8px; background-color: var(--badge-bg); border: 1px solid var(--panel-border); border-radius: 3px; min-height: 22px;"></div>
+
+            <div style="max-height: 210px; overflow-y: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Run #</th>
+                            <th>Raw Time</th>
+                            <th>Cones</th>
+                            <th>Final Time</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lookup-runs-body">
+                        <tr><td colspan="5" style="color:var(--text-dim)">No car selected</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let latestState = null;
+
+        // Modal functions
+        function openSettingsModal() {
+            document.getElementById('advanced-settings-modal').style.display = 'flex';
+        }
+        function closeSettingsModal() {
+            document.getElementById('advanced-settings-modal').style.display = 'none';
+        }
+
+        // 3-way theme cycle: sunlight → pit-dark (orange) → dark blue
+        const THEMES = ['sunlight', 'pit', 'dark'];
+        const THEME_LABELS = { sunlight: '☀️ SUNLIGHT', pit: '🟠 PIT DARK', dark: '🌙 DARK' };
+
+        function initTheme() {
+            const saved = localStorage.getItem('timing_theme') || 'sunlight';
+            applyTheme(saved);
+        }
+
+        function applyTheme(theme) {
+            document.body.classList.remove('theme-dark', 'theme-pit');
+            if (theme === 'dark') document.body.classList.add('theme-dark');
+            if (theme === 'pit')  document.body.classList.add('theme-pit');
+            document.getElementById('theme-btn').textContent = THEME_LABELS[theme] || '☀️ SUNLIGHT';
+            localStorage.setItem('timing_theme', theme);
+        }
+
+        function cycleTheme() {
+            const current = localStorage.getItem('timing_theme') || 'sunlight';
+            const next = THEMES[(THEMES.indexOf(current) + 1) % THEMES.length];
+            applyTheme(next);
+        }
+
+        initTheme();
+
+        const ws = new WebSocket(`ws://${location.host}/ws`);
+
+        ws.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+            if (msg.type === "queue_update" || msg.type === "initial_state") {
+                renderState(msg.data);
+            }
+        };
+
+        async function refreshState() {
+            try {
+                const res = await fetch('/api/state');
+                if (res.ok) {
+                    const state = await res.json();
+                    renderState(state);
+                }
+            } catch (err) {
+                console.error("Failed to fetch state:", err);
+            }
+        }
+
+        function renderState(state) {
+            latestState = state;
+
+            // Header Event Title
+            const headerTitleEl = document.getElementById('header-title');
+            if (headerTitleEl) {
+                const nameStr = state.event_name ? ` — ${state.event_name.toUpperCase()}` : '';
+                headerTitleEl.textContent = `🏁 CONE CONTROL${nameStr}`;
+            }
+
+            // Render Settings
+            const activeEl = document.activeElement;
+            const isEditingSettings = activeEl && [
+                'event-name-input',
+                'event-date-input',
+                'cone-penalty-input',
+                'num-heats-input',
+                'runs-per-heat-input'
+            ].includes(activeEl.id);
+
+            if (!isEditingSettings) {
+                document.getElementById('event-name-input').value = state.event_name || 'Autocross Event';
+                document.getElementById('event-date-input').value = state.event_date || new Date().toISOString().split('T')[0];
+                document.getElementById('cone-penalty-input').value = state.cone_penalty_seconds !== undefined ? state.cone_penalty_seconds : 2;
+                document.getElementById('num-heats-input').value = state.num_heats || 1;
+                document.getElementById('runs-per-heat-input').value = state.runs_per_heat || 3;
+            }
+            document.getElementById('auto-launch-chk').checked = !!state.auto_launch;
+
+            const calcMax = (state.num_heats || 1) * (state.runs_per_heat || 3);
+            const calcMaxEl = document.getElementById('calculated-max-runs');
+            if (calcMaxEl) calcMaxEl.textContent = calcMax;
+
+            const maxRuns = state.max_runs_per_car || calcMax || 3;
+
+            // Update zero runs badge & table if modal is open
+            const zeroCountEl = document.getElementById('zero-runs-count');
+            if (zeroCountEl) zeroCountEl.textContent = (state.zero_run_drivers || []).length;
+            if (document.getElementById('zero-runs-modal').style.display === 'flex') {
+                renderZeroRunsTable();
+            }
+
+            // Render Unified Track Command Panel
+            renderQueuePanel(state, maxRuns);
+
+            // Render Completed Runs Log Table
+            renderRunsTable(state, maxRuns);
+
+            // Also update Single Car Lookup panel if car # is entered
+            updateCarLookup();
+        }
+
+        function openZeroRunsModal() {
+            document.getElementById('zero-runs-modal').style.display = 'flex';
+            renderZeroRunsTable();
+        }
+        function closeZeroRunsModal() {
+            document.getElementById('zero-runs-modal').style.display = 'none';
+        }
+
+        function renderZeroRunsTable() {
+            if (!latestState) return;
+            const zeroRunsList = latestState.zero_run_drivers || [];
+            const countEl = document.getElementById('zero-runs-count');
+            if (countEl) countEl.textContent = zeroRunsList.length;
+
+            const modalSummaryEl = document.getElementById('zero-runs-modal-summary');
+            if (modalSummaryEl) modalSummaryEl.textContent = `${zeroRunsList.length} driver(s) remaining with 0 runs`;
+
+            const filterVal = (document.getElementById('zero-runs-filter')?.value || '').trim().toLowerCase();
+            const body = document.getElementById('zero-runs-body');
+
+            const filtered = zeroRunsList.filter(d => {
+                if (!filterVal) return true;
+                return (
+                    (d.car_number || '').toLowerCase().includes(filterVal) ||
+                    (d.full_name || '').toLowerCase().includes(filterVal) ||
+                    (d.class_name || '').toLowerCase().includes(filterVal)
+                );
+            });
+
+            if (filtered.length === 0) {
+                body.innerHTML = '<tr><td colspan="5" style="color:var(--text-dim)">No matching drivers with 0 runs</td></tr>';
+                return;
+            }
+
+            body.innerHTML = filtered.map(d => {
+                let statusBadge = '<span style="color:var(--text-dim);">Not Staged</span>';
+                if (d.is_active) {
+                    statusBadge = '<span class="status-badge-active">On Track</span>';
+                } else if (d.is_staged) {
+                    statusBadge = '<span class="status-badge-staged">Staged</span>';
+                }
+
+                const carDetails = [d.car_model, d.car_color].filter(Boolean).join(' / ') || '—';
+                const safeName = (d.full_name || 'Driver').replace(/'/g, "\\'");
+                const actionBtn = (d.is_staged || d.is_active)
+                    ? '<span style="font-size:0.75rem; color:var(--text-dim);">Queued</span>'
+                    : `<button onclick="stageZeroRunDriver('${d.car_number}', '${safeName}')" class="btn-green">+ STAGE</button>`;
+
+                return `
+                    <tr>
+                        <td class="car-num">${d.car_number}</td>
+                        <td class="driver-name">${d.full_name || 'Driver'}</td>
+                        <td style="font-size:0.78rem; color:var(--text-dim); font-weight:700;">${d.class_name || '—'}</td>
+                        <td style="font-size:0.78rem; color:var(--text-dim);">${carDetails}</td>
+                        <td>${actionBtn}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function stageZeroRunDriver(carNum, driverName) {
+            await fetch('/api/stage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ car_number: carNum, driver_name: driverName })
+            });
+            await refreshState();
+            renderZeroRunsTable();
+        }
+
+        function renderQueuePanel(state, maxRuns) {
+            const body = document.getElementById('queue-body');
+            const activeQ = state.active_queue || [];
+            const stagingQ = state.staging_queue || [];
+            const allCars = [...activeQ, ...stagingQ];
+
+            const onTrackCars = allCars.filter(c => c.is_on_track);
+            const waitingStartCars = allCars.filter(c => !c.is_on_track);
+
+            const activeCountEl = document.getElementById('active-count');
+            if (activeCountEl) {
+                activeCountEl.textContent = `${onTrackCars.length} On Track | ${waitingStartCars.length} Waiting to Start`;
+            }
+
+            if (allCars.length === 0) {
+                body.innerHTML = '<tr><td colspan="8" style="color:var(--text-dim)">No cars in queue — enter a car number below</td></tr>';
+                return;
+            }
+
+            body.innerHTML = allCars.map((c, idx) => {
+                let posBadge = '';
+                let rowClass = '';
+
+                if (c.is_on_track) {
+                    rowClass = 'queue-active-row';
+                    const onTrackIndex = onTrackCars.indexOf(c);
+                    if (c.is_dnf) {
+                        posBadge = `<span style="font-size:0.75rem; padding:2px 6px; background-color:var(--accent-red); color:#fff; font-weight:900; border-radius:3px;">🔴 #${onTrackIndex + 1} DNF (IN FLIGHT)</span>`;
+                    } else if (onTrackIndex === 0) {
+                        posBadge = `<span class="status-badge-active" style="font-size:0.75rem; padding:2px 6px;">🟢 #1 NEXT TO FINISH</span>`;
+                    } else {
+                        posBadge = `<span class="status-badge-active">🟢 #${onTrackIndex + 1} ON TRACK</span>`;
+                    }
+                } else {
+                    rowClass = 'queue-staged-row';
+                    const waitingIndex = waitingStartCars.indexOf(c);
+                    if (waitingIndex === 0) {
+                        posBadge = `<span style="font-size:0.75rem; padding:2px 6px; background-color:var(--accent-yellow); color:#000; font-weight:900; border-radius:3px;">🟡 NEXT TO START</span>`;
+                    } else {
+                        posBadge = `<span class="status-badge-staged">⏳ #${waitingIndex + 1} IN LINE</span>`;
+                    }
+                }
+
+                const runNum = c.is_on_track ? c.runs_completed + 1 : c.runs_completed;
+                const deleteFn = `deleteActive('${c.car_number}')`;
+                const conesDisplay = c.is_on_track ? (c.penalty_cones || 0) : '—';
+                const conesStyle = (c.is_on_track && c.penalty_cones > 0) ? 'font-weight:900; color:var(--accent-red);' : 'color:var(--text-dim);';
+
+                return `
+                    <tr class="${rowClass}"
+                        draggable="true"
+                        ondragstart="dragStart(event, ${idx})"
+                        ondragover="dragOver(event)"
+                        ondrop="dragDrop(event, ${idx})"
+                        ondragleave="dragLeave(event)">
+                        <td><span class="drag-handle">⠿</span></td>
+                        <td>${posBadge}</td>
+                        <td class="car-num">${c.car_number}</td>
+                        <td style="font-size:0.78rem; color:var(--text-dim); font-weight:700;">${c.class_name || '—'}</td>
+                        <td>
+                            <div class="driver-name">${c.driver_name}</div>
+                            ${c.car_model ? `<div style="font-size:0.75rem; color:var(--text-dim);">${c.car_model}</div>` : ''}
+                        </td>
+                        <td><span class="run-badge">[${runNum}/${maxRuns}]</span></td>
+                        <td style="${conesStyle}">${conesDisplay}</td>
+                        <td style="white-space:nowrap;">
+                            <button onclick="issueFault('${c.car_number}')" class="btn-amber" style="min-width:38px;" title="Timing fault — re-stages car">⚠️ FAULT</button>
+                            <button onclick="flagDnf('${c.car_number}')" class="btn-red" style="min-width:38px;" title="Mark DNF">DNF</button>
+                            <button onclick="${deleteFn}" class="btn-secondary" style="min-width:38px;" title="Remove from track">DEL</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        let currentSortMode = localStorage.getItem('runs_sort') || 'leaderboard';
+
+        function setSortMode(mode) {
+            currentSortMode = mode;
+            localStorage.setItem('runs_sort', mode);
+            document.getElementById('sort-chrono-btn').classList.toggle('active', mode === 'chrono');
+            document.getElementById('sort-leader-btn').classList.toggle('active', mode === 'leaderboard');
+            if (latestState) renderRunsTable(latestState, latestState.max_runs_per_car || 4);
+        }
+
+        async function toggleFinalizeHeat() {
+            if (!latestState) return;
+            const lockedCount = (latestState.completed_runs || []).filter(r => r.is_locked).length;
+            const unlockedCount = (latestState.completed_runs || []).filter(r => !r.is_locked).length;
+
+            if (unlockedCount === 0 && lockedCount > 0) {
+                alert(`All ${lockedCount} completed run(s) are permanently locked.\n\nAny NEW runs recorded will remain unlocked for editing until you click Finalize Heat again.`);
+                return;
+            }
+
+            if (confirm(`Finalize Heat now?\n\nThis will PERMANENTLY LOCK all ${unlockedCount} unlocked completed run(s).\nOnce locked, these runs CANNOT be edited.\n\nAny NEW runs recorded after this will be unlocked for editing.`)) {
+                await fetch('/api/finalize_heat', { method: 'POST' });
+            }
+        }
+
+        function renderRunsTable(state, maxRuns) {
+            const runsBody = document.getElementById('runs-body');
+            document.getElementById('total-runs').textContent = `${state.completed_runs.length} runs`;
+            document.getElementById('sort-chrono-btn').classList.toggle('active', currentSortMode === 'chrono');
+            document.getElementById('sort-leader-btn').classList.toggle('active', currentSortMode === 'leaderboard');
+
+            const lockedRunsCount = (state.completed_runs || []).filter(r => r.is_locked).length;
+            const totalRunsCount = (state.completed_runs || []).length;
+            const heatLockBadge = document.getElementById('heat-lock-badge');
+
+            if (heatLockBadge) {
+                if (lockedRunsCount > 0) {
+                    heatLockBadge.style.display = 'inline-block';
+                    heatLockBadge.textContent = `🔒 ${lockedRunsCount}/${totalRunsCount} RUNS LOCKED`;
+                } else {
+                    heatLockBadge.style.display = 'none';
+                }
+            }
+
+            if (!state.completed_runs || state.completed_runs.length === 0) {
+                runsBody.innerHTML = '<tr><td colspan="11" style="color:var(--text-dim)">No completed runs recorded</td></tr>';
+                return;
+            }
+
+            let displayRuns;
+            if (currentSortMode === 'leaderboard') {
+                const carBest = {};
+                for (const run of state.completed_runs) {
+                    if (run.status !== 'OFFICIAL') continue;
+                    const k = run.car_number;
+                    if (!carBest[k] || run.final_time_seconds < carBest[k].final_time_seconds) {
+                        carBest[k] = run;
+                    }
+                }
+                displayRuns = Object.values(carBest).sort((a, b) => {
+                    const ca = (a.class_name || '').toLowerCase();
+                    const cb = (b.class_name || '').toLowerCase();
+                    if (ca < cb) return -1;
+                    if (ca > cb) return 1;
+                    return a.final_time_seconds - b.final_time_seconds;
+                });
+            } else {
+                displayRuns = state.completed_runs.slice().reverse();
+            }
+
+            let lastClass = null;
+            runsBody.innerHTML = displayRuns.map(run => {
+                let classHeaderRow = '';
+                if (currentSortMode === 'leaderboard' && run.class_name && run.class_name !== lastClass) {
+                    lastClass = run.class_name;
+                    classHeaderRow = `<tr style="background:var(--table-header-bg); color:var(--table-header-text);"><td colspan="11" style="font-weight:900; padding:3px 6px; font-size:0.82rem; letter-spacing:1px;">📋 CLASS: ${run.class_name.toUpperCase()}</td></tr>`;
+                }
+                const dnfLabel = run.status === 'DNF'   ? 'RST' : 'DNF';
+                const dnfClass = run.status === 'DNF'   ? 'btn-green' : 'btn-amber';
+                const rrnLabel = run.status === 'RERUN' ? 'RST' : 'RRN';
+                const rrnClass = run.status === 'RERUN' ? 'btn-green' : 'btn-secondary';
+                const targetDnfStatus = run.status === 'DNF' ? 'PROVISIONAL' : 'DNF';
+                const targetRrnStatus = run.status === 'RERUN' ? 'PROVISIONAL' : 'RERUN';
+
+                const isLocked = !!run.is_locked;
+
+                const coneButtons = isLocked ? `<strong>${run.penalty_cones}</strong>` : `
+                    <strong>${run.penalty_cones}</strong>
+                    <button onclick="adjustPenalty(${run.run_id}, ${run.penalty_cones + 1}, '${run.status}')">+</button>
+                    <button onclick="adjustPenalty(${run.run_id}, ${Math.max(0, run.penalty_cones - 1)}, '${run.status}')">-</button>
+                `;
+
+                const actionButtons = isLocked ? `<span style="font-size:0.75rem; color:var(--text-dim); font-weight:900; background-color:var(--badge-bg); padding:3px 8px; border-radius:3px; border:1px solid var(--panel-border);">🔒 LOCKED</span>` : `
+                    <button onclick="toggleDnf(${run.run_id}, ${run.penalty_cones}, '${targetDnfStatus}')" class="${dnfClass}" style="min-width:38px;" title="Toggle DNF">${dnfLabel}</button>
+                    <button onclick="toggleDnf(${run.run_id}, ${run.penalty_cones}, '${targetRrnStatus}')" class="${rrnClass}" style="min-width:38px;" title="Toggle Re-Run">${rrnLabel}</button>
+                    <button onclick="deleteRun(${run.run_id})" class="btn-red" style="min-width:38px;" title="Delete run">DEL</button>
+                `;
+
+                const statusColor = run.status === 'OFFICIAL'
+                    ? 'var(--accent-green)'
+                    : (run.status === 'PROVISIONAL' ? 'var(--accent-yellow)' : (run.status === 'RERUN' ? 'var(--accent-blue)' : 'var(--accent-red)'));
+
+                return classHeaderRow + `
+                    <tr style="${isLocked ? 'opacity:0.88;' : ''}">
+                        <td style="color:var(--text-dim); font-size:0.78rem;">#${run.run_id}</td>
+                        <td style="color:var(--text-dim); font-size:0.78rem; white-space:nowrap;">${run.completed_at}</td>
+                        <td class="car-num">${run.car_number}</td>
+                        <td style="font-size:0.78rem; color:var(--text-dim); font-weight:700;">${run.class_name || '—'}</td>
+                        <td class="driver-name">${run.driver_name || 'Driver'}</td>
+                        <td style="font-size:0.78rem;"><span class="run-badge">${run.car_run_number || 1}/${maxRuns}</span></td>
+                        <td style="font-size:0.8rem;">${run.raw_time_seconds.toFixed(3)}s</td>
+                        <td>${coneButtons}</td>
+                        <td class="time-display">${run.final_time_formatted}${run.status !== 'DNF' && run.status !== 'RERUN' ? 's' : ''}</td>
+                        <td style="color: ${statusColor}; font-weight:bold; font-size:0.8rem;">${run.status}</td>
+                        <td style="white-space:nowrap;">${actionButtons}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Also update Single Car Lookup panel if car # is entered
+        // (called by renderState after renderRunsTable)
+
+        async function updateCarLookup() {
+            if (!latestState) return;
+            const input = document.getElementById('lookup-car-num');
+            const cleanNum = input.value.trim().replace(/^#/, '');
+            const driverInfo = document.getElementById('lookup-driver-info');
+            const bestTag = document.getElementById('lookup-best-tag');
+            const body = document.getElementById('lookup-runs-body');
+
+            if (!cleanNum) {
+                driverInfo.textContent = "Enter a Car # above to view run history";
+                bestTag.textContent = "";
+                body.innerHTML = '<tr><td colspan="5" style="color:var(--text-dim)">No car selected</td></tr>';
+                return;
+            }
+
+            // Filter runs for this car number
+            const carRuns = (latestState.completed_runs || []).filter(
+                r => r.car_number.trim().replace(/^#/, '') === cleanNum
+            );
+
+            // Fetch Driver Info from database lookup API
+            let driverName = "";
+            let classModelStr = "";
+            try {
+                const res = await fetch(`/api/lookup_driver/${cleanNum}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.found) {
+                        driverName = data.full_name;
+                        const details = [data.class_name, data.car_model, data.car_color].filter(Boolean).join(' | ');
+                        if (details) classModelStr = ` (${details})`;
+                    }
+                }
+            } catch (e) {}
+
+            if (!driverName && carRuns.length > 0) {
+                driverName = carRuns[0].driver_name;
+            }
+
+            driverInfo.textContent = `Driver: ${driverName || 'Car ' + cleanNum}${classModelStr}`;
+
+            if (carRuns.length === 0) {
+                bestTag.textContent = "";
+                body.innerHTML = '<tr><td colspan="5" style="color:var(--text-dim)">No completed runs recorded for this car</td></tr>';
+                return;
+            }
+
+            // Find best time among OFFICIAL runs
+            const officialRuns = carRuns.filter(r => r.status === 'OFFICIAL');
+            let bestTime = null;
+            if (officialRuns.length > 0) {
+                const sorted = officialRuns.slice().sort((a, b) => a.final_time_seconds - b.final_time_seconds);
+                bestTime = sorted[0].final_time_seconds;
+                bestTag.textContent = `⭐ BEST: ${bestTime.toFixed(3)}s`;
+            } else {
+                bestTag.textContent = "";
+            }
+
+            // --- Find fastest time in class ---
+            let className = "";
+            try {
+                const res = await fetch(`/api/lookup_driver/${cleanNum}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.found) className = data.class_name || "";
+                }
+            } catch (e) {}
+
+            let classBestTime = null;
+            let classBestCar = null;
+            let classBestDriver = null;
+
+            if (className && latestState.completed_runs) {
+                // Group by car: find each car's best OFFICIAL run, then find class leader
+                const carBests = {};
+                for (const run of latestState.completed_runs) {
+                    if (run.status !== 'OFFICIAL') continue;
+                    const runClass = run.class_name || "";
+                    if (runClass.toLowerCase() !== className.toLowerCase()) continue;
+                    const cn = run.car_number.trim().replace(/^#/, '');
+                    if (!(cn in carBests) || run.final_time_seconds < carBests[cn].time) {
+                        carBests[cn] = { time: run.final_time_seconds, driver: run.driver_name, car: cn };
+                    }
+                }
+                for (const cn in carBests) {
+                    if (classBestTime === null || carBests[cn].time < classBestTime) {
+                        classBestTime = carBests[cn].time;
+                        classBestCar = carBests[cn].car;
+                        classBestDriver = carBests[cn].driver;
+                    }
+                }
+            }
+
+            // Render class info section below driver info
+            const classInfoEl = document.getElementById('lookup-class-info');
+            if (className) {
+                let classBestStr = "";
+                if (classBestTime !== null) {
+                    const isLeader = (bestTime !== null && Math.abs(classBestTime - bestTime) < 0.0001 && classBestCar.replace(/^#/,'') === cleanNum);
+                    const gapStr = (bestTime !== null && !isLeader) ? ` (+${(bestTime - classBestTime).toFixed(3)}s back)` : "";
+                    if (isLeader) {
+                        classBestStr = `🥇 CLASS LEADER — ${classBestTime.toFixed(3)}s`;
+                    } else {
+                        classBestStr = `Class Leader: ${classBestDriver} (#${classBestCar}) — ${classBestTime.toFixed(3)}s${gapStr ? `   <span style="color:var(--accent-red); font-weight:900;">${gapStr}</span>` : ''}`;
+                    }
+                } else {
+                    classBestStr = "No scored runs in class yet";
+                }
+                classInfoEl.innerHTML = `<span style="color:var(--accent-blue); font-weight:900;">Class: ${className}</span>&nbsp;&nbsp;|&nbsp;&nbsp;${classBestStr}`;
+                classInfoEl.style.display = 'block';
+            } else {
+                classInfoEl.style.display = 'none';
+            }
+
+            body.innerHTML = carRuns.map(run => {
+                const isBest = (bestTime !== null && run.status === 'OFFICIAL' && Math.abs(run.final_time_seconds - bestTime) < 0.0001);
+                return `
+                    <tr class="${isBest ? 'best-run-row' : ''}">
+                        <td>Run ${run.car_run_number || 1} ${isBest ? '⭐' : ''}</td>
+                        <td>${run.raw_time_seconds.toFixed(3)}s</td>
+                        <td>${run.penalty_cones}</td>
+                        <td class="time-display" style="font-size:1rem;">${run.final_time_formatted}${run.status !== 'DNF' && run.status !== 'RERUN' ? 's' : ''}</td>
+                        <td style="color: ${run.status === 'OFFICIAL' ? 'var(--accent-green)' : (run.status === 'RERUN' ? 'var(--accent-yellow)' : 'var(--accent-red)')}; font-weight:bold;">${run.status}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        let activeModalCar = null;
+
+        function showMaxRunsModal(carNum, runsCompleted, maxRuns) {
+            activeModalCar = carNum;
+            document.getElementById('modal-msg').innerHTML =
+                `Car <strong>${carNum}</strong> has already completed <strong>${runsCompleted} of ${maxRuns}</strong> allowed runs!`;
+            document.getElementById('max-runs-modal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('max-runs-modal').style.display = 'none';
+            activeModalCar = null;
+        }
+
+        async function setModalFault() {
+            if (activeModalCar) {
+                await issueFault(activeModalCar);
+            }
+            closeModal();
+        }
+
+        async function deleteModalCar() {
+            if (activeModalCar) {
+                await fetch(`/api/stage/${activeModalCar}`, { method: 'DELETE' });
+                await fetch(`/api/active/${activeModalCar}`, { method: 'DELETE' });
+                await refreshState();
+            }
+            closeModal();
+        }
+
+        let lookupDebounce = null;
+        async function autoLookupDriver(carNum) {
+            clearTimeout(lookupDebounce);
+            const cleanNum = (carNum || '').trim();
+            const driverInput = document.getElementById('stage-driver');
+
+            if (!cleanNum) {
+                driverInput.value = '';
+                return;
+            }
+
+            lookupDebounce = setTimeout(async () => {
+                try {
+                    const res = await fetch(`/api/lookup_driver/${cleanNum}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.found && data.full_name) {
+                            driverInput.value = data.full_name;
+                        } else {
+                            driverInput.value = '';
+                        }
+                    } else {
+                        driverInput.value = '';
+                    }
+                } catch (err) {
+                    driverInput.value = '';
+                }
+            }, 150);
+        }
+
+        async function stageCar() {
+            const input = document.getElementById('stage-car-num');
+            const carNum = input.value.trim();
+            const driverInput = document.getElementById('stage-driver');
+            const driver = driverInput.value.trim() || 'Driver';
+            if (!carNum) return;
+
+            const res = await fetch('/api/stage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ car_number: carNum, driver_name: driver })
+            });
+
+            const data = await res.json();
+
+            if (data.already_queued) {
+                // Flash input red — car already in queue or on track
+                input.style.borderColor = 'var(--accent-red)';
+                input.style.color = 'var(--accent-red)';
+                document.getElementById('stage-error').textContent = `Car #${data.car_number} is already queued or on track`;
+                setTimeout(() => {
+                    input.style.borderColor = '';
+                    input.style.color = '';
+                    document.getElementById('stage-error').textContent = '';
+                }, 3000);
+                return;
+            }
+
+            if (data.track_full) {
+                // Flash input red — maximum cars allowed on track reached
+                input.style.borderColor = 'var(--accent-red)';
+                input.style.color = 'var(--accent-red)';
+                document.getElementById('stage-error').textContent = `Track queue full! Maximum ${data.max_cars} cars allowed on track.`;
+                setTimeout(() => {
+                    input.style.borderColor = '';
+                    input.style.color = '';
+                    document.getElementById('stage-error').textContent = '';
+                }, 3000);
+                return;
+            }
+
+            document.getElementById('stage-error').textContent = '';
+            input.value = '';
+            driverInput.value = '';
+            input.focus();
+            await refreshState();
+
+            if (data.over_max_runs) {
+                showMaxRunsModal(carNum, data.runs_completed, data.max_runs);
+            }
+        }
+
+        async function removeStaged(carNum) {
+            await fetch(`/api/stage/${carNum}`, { method: 'DELETE' });
+            await refreshState();
+        }
+
+        async function deleteActive(carNum) {
+            // Inline removal — no confirm dialog
+            await fetch(`/api/active/${carNum}`, { method: 'DELETE' });
+            await refreshState();
+        }
+
+        async function toggleAutoLaunch() {
+            await fetch('/api/toggle_auto_launch', { method: 'POST' });
+            await refreshState();
+        }
+
+        async function directDispatch() {
+            const input = document.getElementById('direct-car-num');
+            const carNum = input.value.trim();
+            if (!carNum) return;
+
+            await fetch('/api/dispatch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ car_number: carNum })
+            });
+
+            input.value = '';
+            await refreshState();
+        }
+
+        // Drag-to-reorder for active track
+        let dragSrcIdx = null;
+        function dragStart(e, idx) { dragSrcIdx = idx; e.dataTransfer.effectAllowed = 'move'; }
+        function dragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+        function dragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+        async function dragDrop(e, targetIdx) {
+            e.currentTarget.classList.remove('drag-over');
+            if (dragSrcIdx === null || dragSrcIdx === targetIdx) return;
+            await swapActive(dragSrcIdx, targetIdx);
+            dragSrcIdx = null;
+        }
+
+        async function issueFault(carNum) {
+            // Inline — no confirm dialog
+            await fetch('/api/fault', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ car_number: carNum, restage: true })
+            });
+            await refreshState();
+        }
+
+        async function flagDnf(carNum) {
+            // Inline — no confirm dialog
+            await fetch('/api/dnf_active', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ car_number: carNum })
+            });
+            await refreshState();
+        }
+
+        async function adjustActiveCones(carNum, delta) {
+            await fetch('/api/active_cone', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ car_number: carNum, delta: delta })
+            });
+            await refreshState();
+        }
+
+        document.addEventListener('keydown', function(event) {
+            const settingsModal = document.getElementById('advanced-settings-modal');
+            const maxRunsModal = document.getElementById('max-runs-modal');
+            const zeroRunsModal = document.getElementById('zero-runs-modal');
+            if ((settingsModal && settingsModal.style.display === 'flex') ||
+                (maxRunsModal && maxRunsModal.style.display === 'flex') ||
+                (zeroRunsModal && zeroRunsModal.style.display === 'flex')) {
+                return;
+            }
+
+            if (!latestState) return;
+            const activeQ = latestState.active_queue || [];
+            const stagingQ = latestState.staging_queue || [];
+            const allCars = [...activeQ, ...stagingQ];
+            const onTrackCars = allCars.filter(c => c.is_on_track);
+
+            if (onTrackCars.length === 0) return;
+            const nextToFinishCar = onTrackCars[0];
+
+            if (event.key === '+' || event.key === '=') {
+                event.preventDefault();
+                adjustActiveCones(nextToFinishCar.car_number, 1);
+            } else if (event.key === '-' || event.key === '_') {
+                event.preventDefault();
+                adjustActiveCones(nextToFinishCar.car_number, -1);
+            } else if (event.key === '/') {
+                event.preventDefault();
+                flagDnf(nextToFinishCar.car_number);
+            }
+        });
+
+
+        async function swapActive(idxA, idxB) {
+            await fetch('/api/swap_active', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ index_a: idxA, index_b: idxB })
+            });
+            await refreshState();
+        }
+
+        async function saveSettings() {
+            const eventName = document.getElementById('event-name-input').value;
+            const eventDate = document.getElementById('event-date-input').value;
+            const conePenalty = parseFloat(document.getElementById('cone-penalty-input').value) || 2.0;
+            const numHeats = parseInt(document.getElementById('num-heats-input').value) || 1;
+            const runsPerHeat = parseInt(document.getElementById('runs-per-heat-input').value) || 3;
+            const autoLaunch = document.getElementById('auto-launch-chk').checked;
+
+            const calcMaxEl = document.getElementById('calculated-max-runs');
+            if (calcMaxEl) calcMaxEl.textContent = numHeats * runsPerHeat;
+
+            await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    event_name: eventName,
+                    event_date: eventDate,
+                    cone_penalty_seconds: conePenalty,
+                    num_heats: numHeats,
+                    runs_per_heat: runsPerHeat,
+                    auto_launch: autoLaunch
+                })
+            });
+            await refreshState();
+        }
+
+        async function adjustPenalty(runId, cones, status) {
+            await fetch('/api/update_run', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ run_id: runId, penalty_cones: cones, status: status })
+            });
+            await refreshState();
+        }
+
+        async function toggleDnf(runId, cones, newStatus) {
+            await fetch('/api/update_run', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ run_id: runId, penalty_cones: cones, status: newStatus })
+            });
+            await refreshState();
+        }
+
+        async function deleteRun(runId) {
+            if (confirm(`Delete run #${runId}?`)) {
+                await fetch(`/api/run/${runId}`, { method: 'DELETE' });
+                await refreshState();
+            }
+        }
+
+        async function triggerSimulatedFinish() {
+            const timeVal = parseFloat(document.getElementById('sim-time-input').value) || 42.123;
+            await fetch(`/api/simulate_finish?seconds=${timeVal}`, { method: 'POST' });
+            await refreshState();
+        }
+
+        // Fetch state on initial page load and poll every 1 second
+        refreshState();
+        setInterval(refreshState, 1000);
+    </script>
+</body>
+</html>
